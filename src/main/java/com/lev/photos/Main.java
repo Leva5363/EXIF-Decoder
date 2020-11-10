@@ -1,3 +1,5 @@
+package com.lev.photos;
+
 import io.vertx.core.Vertx;
 
 import static io.vertx.core.Vertx.*;
