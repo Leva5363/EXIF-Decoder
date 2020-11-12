@@ -19,8 +19,7 @@ import io.vertx.ext.web.handler.CorsHandler;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Date;
-import java.util.Set;
+import java.util.*;
 
 public class Server extends AbstractVerticle {
 
@@ -61,53 +60,68 @@ public class Server extends AbstractVerticle {
 
   private void handleParsePhoto(RoutingContext ctx) {
     Set<FileUpload> uploads = ctx.fileUploads();
-    if (uploads.isEmpty()){
+    if (uploads.isEmpty()) {
       ctx.response().end(Json.encode("No file to process"));
     } else {
-      for (FileUpload f : uploads) {
-        try {
-          Metadata metadata = ImageMetadataReader.readMetadata(new File(f.uploadedFileName()));
-          System.out.println(metadata.getDirectories());
-          tagsValues(metadata);
-          if (metadata.containsDirectoryOfType(ExifSubIFDDirectory.class)) {
-            ExifSubIFDDirectory directory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
-            Date date = directory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
-            ctx.response().end(Json.encode(chekingEvening(date)));
-          }
-          else if (metadata.containsDirectoryOfType(FileSystemDirectory.class)){
-            FileSystemDirectory directory = metadata.getFirstDirectoryOfType(FileSystemDirectory.class);
-            Date date = directory.getDate(FileSystemDirectory.TAG_FILE_MODIFIED_DATE);
-            ctx.response().end(Json.encode(chekingEvening(date)));
-          }
-          else {
-            ctx.response().end(Json.encode("The photo has wrong format, impossible to process"));
-          }
+      uploads.forEach((el) -> parseMetadata(el, ctx));
+    }
+  }
 
-        } catch (IOException | ImageProcessingException e) {
-          ctx.response().end(Json.encode("Unknown error!"));
+  private void parseMetadata(FileUpload f, RoutingContext ctx) {
+    Metadata metadata = null;
+    try {
+      metadata = ImageMetadataReader.readMetadata(new File(f.uploadedFileName()));
+    } catch (IOException | ImageProcessingException e) {
+      ctx.response().end(Json.encode("Unknown error!"));
+    }
+    tagsValues(metadata);
+    extractingDate(metadata,ctx);
+  }
 
-        }
+  private void extractingDate (Metadata metadata,RoutingContext ctx){
+    Date date = null;
+      if (metadata.containsDirectoryOfType(ExifSubIFDDirectory.class)) {
+        ExifSubIFDDirectory directory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
+        date = directory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
+      } else if (metadata.containsDirectoryOfType(FileSystemDirectory.class)) {
+        FileSystemDirectory directory = metadata.getFirstDirectoryOfType(FileSystemDirectory.class);
+        date = directory.getDate(FileSystemDirectory.TAG_FILE_MODIFIED_DATE);
+      } else {
+        ctx.response().end(Json.encode("The photo has wrong format, impossible to process"));
       }
+    ctx.response().end(Json.encode(chekingEvening(date, ctx)));
     }
 
-  }
-
-  private String chekingEvening(Date date) {
-    if (date.getHours() > 18 && date.getHours() < 24) {
-      return "The photo was taken in the evening";
+  private String chekingEvening(Date date, RoutingContext ctx) {
+    if (date != null) {
+      if (date.getHours() > 18 && date.getHours() < 24) {
+        return "The photo was taken in the evening";
+      } else {
+        return "The photo was taken NOT in the evening";
+      }
     } else {
-      return "The photo was taken NOT in the evening";
+      return "The photo hasn't Time!";
     }
   }
+
+//  private void tagsValues(Metadata metadata) {
+//    for (Directory directory : metadata.getDirectories()) {
+//      System.out.println(directory);
+//      String directoryName = directory.getName();
+//      // Write the directory's tags
+//      for (Tag tag : directory.getTags()) {
+//        System.out.println(tag.getTagName() + "=====" + tag.getDescription());
+//      }
+//    }
+//  }
 
   private void tagsValues(Metadata metadata) {
-    for (Directory directory : metadata.getDirectories()) {
-      System.out.println(directory);
-      String directoryName = directory.getName();
-      // Write the directory's tags
-      for (Tag tag : directory.getTags()) {
-        System.out.println(tag.getTagName() + "=====" + tag.getDescription());
-      }
-    }
+    metadata.getDirectories().forEach(it ->
+    {
+      System.out.println(it.getName());
+      it.getTags().forEach( tag ->
+        System.out.println(tag.getDescription()));
+    });
   }
 }
+
