@@ -77,7 +77,11 @@ public class Server extends AbstractVerticle {
     } catch (IOException | ImageProcessingException e) {
       ctx.response().end(Json.encode("Unknown error!"));
     }
-    extractingDate(metadata, ctx);
+    if (metadata == null) {
+      ctx.response().end(Json.encode("Problem in extracting metadata, please, try again!"));
+    } else {
+      extractingDate(metadata, ctx);
+    }
   }
 
   private void extractingDate(Metadata metadata, RoutingContext ctx) {
