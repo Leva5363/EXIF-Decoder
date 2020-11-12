@@ -21,7 +21,6 @@ import java.util.Date;
 import java.util.Set;
 
 
-
 public class Server extends AbstractVerticle {
 
   private static final int EVENING_BEGINING = 18;
@@ -78,32 +77,34 @@ public class Server extends AbstractVerticle {
     } catch (IOException | ImageProcessingException e) {
       ctx.response().end(Json.encode("Unknown error!"));
     }
-    extractingDate(metadata,ctx);
+    extractingDate(metadata, ctx);
   }
 
-  private void extractingDate (Metadata metadata,RoutingContext ctx){
+  private void extractingDate(Metadata metadata, RoutingContext ctx) {
     Date date = null;
-      if (metadata.containsDirectoryOfType(ExifSubIFDDirectory.class)) {
-        ExifSubIFDDirectory directory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
-        date = directory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
-      } else if (metadata.containsDirectoryOfType(FileSystemDirectory.class)) {
-        FileSystemDirectory directory = metadata.getFirstDirectoryOfType(FileSystemDirectory.class);
-        date = directory.getDate(FileSystemDirectory.TAG_FILE_MODIFIED_DATE);
-      } else {
-        ctx.response().end(Json.encode("The photo has wrong format, impossible to process"));
-      }
-      if (date == null) {
-        ctx.response().end(Json.encode("The photo hasn't Date"));
-      }
-    ctx.response().end(Json.encode(chekingEvening(date, ctx)));
+    if (metadata.containsDirectoryOfType(ExifSubIFDDirectory.class)) {
+      ExifSubIFDDirectory directory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
+      date = directory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
+    } else if (metadata.containsDirectoryOfType(FileSystemDirectory.class)) {
+      FileSystemDirectory directory = metadata.getFirstDirectoryOfType(FileSystemDirectory.class);
+      date = directory.getDate(FileSystemDirectory.TAG_FILE_MODIFIED_DATE);
+    } else {
+      ctx.response().end(Json.encode("The photo has wrong format, impossible to process"));
+    }
+    if (date == null) {
+      ctx.response().end(Json.encode("The photo hasn't Date"));
+    } else {
+      ctx.response().end(Json.encode(chekingEvening(date)));
     }
 
-  private String chekingEvening(Date date, RoutingContext ctx) {
-      if (date.getHours() > EVENING_BEGINING && date.getHours() < EVENING_END) {
-        return "The photo was taken in the evening";
-      } else {
-        return "The photo was taken NOT in the evening";
-      }
+  }
+
+  private String chekingEvening(Date date) {
+    if (date.getHours() > EVENING_BEGINING && date.getHours() < EVENING_END) {
+      return "The photo was taken in the evening";
+    } else {
+      return "The photo was taken NOT in the evening";
+    }
   }
 }
 
