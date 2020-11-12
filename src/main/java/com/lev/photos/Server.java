@@ -2,9 +2,7 @@ package com.lev.photos;
 
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.imaging.ImageProcessingException;
-import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
-import com.drew.metadata.Tag;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 import com.drew.metadata.file.FileSystemDirectory;
 import io.vertx.core.AbstractVerticle;
@@ -19,9 +17,15 @@ import io.vertx.ext.web.handler.CorsHandler;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.Date;
+import java.util.Set;
+
+
 
 public class Server extends AbstractVerticle {
+
+  private static final int EVENING_BEGINING = 18;
+  private static final int EVENING_END = 24;
 
   @Override
   public void start(Future<Void> future) {
@@ -74,7 +78,6 @@ public class Server extends AbstractVerticle {
     } catch (IOException | ImageProcessingException e) {
       ctx.response().end(Json.encode("Unknown error!"));
     }
-    tagsValues(metadata);
     extractingDate(metadata,ctx);
   }
 
@@ -89,39 +92,18 @@ public class Server extends AbstractVerticle {
       } else {
         ctx.response().end(Json.encode("The photo has wrong format, impossible to process"));
       }
+      if (date == null) {
+        ctx.response().end(Json.encode("The photo hasn't Date"));
+      }
     ctx.response().end(Json.encode(chekingEvening(date, ctx)));
     }
 
   private String chekingEvening(Date date, RoutingContext ctx) {
-    if (date != null) {
-      if (date.getHours() > 18 && date.getHours() < 24) {
+      if (date.getHours() > EVENING_BEGINING && date.getHours() < EVENING_END) {
         return "The photo was taken in the evening";
       } else {
         return "The photo was taken NOT in the evening";
       }
-    } else {
-      return "The photo hasn't Time!";
-    }
-  }
-
-//  private void tagsValues(Metadata metadata) {
-//    for (Directory directory : metadata.getDirectories()) {
-//      System.out.println(directory);
-//      String directoryName = directory.getName();
-//      // Write the directory's tags
-//      for (Tag tag : directory.getTags()) {
-//        System.out.println(tag.getTagName() + "=====" + tag.getDescription());
-//      }
-//    }
-//  }
-
-  private void tagsValues(Metadata metadata) {
-    metadata.getDirectories().forEach(it ->
-    {
-      System.out.println(it.getName());
-      it.getTags().forEach( tag ->
-        System.out.println(tag.getDescription()));
-    });
   }
 }
 
